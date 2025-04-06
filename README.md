@@ -2,6 +2,8 @@
 
 This is a personal fork of the `stream-start-screen` project.
 
+<img width="1420" alt="Screenshot 2025-04-06 at 1 37 50 AM" src="https://github.com/user-attachments/assets/1f969b2e-4534-4c6a-9d7f-55db332c0b64" />
+
 ## Description
 
 `stream-start-screen` is a Rust application that displays a customizable pre-stream starting screen using OpenGL (`glow`) and `glfw` for windowing. It renders a 3D scene containing a monitor, screen, table, and walls. The screen displays dynamic text including:
