@@ -179,6 +179,8 @@ struct App<'a> {
     screen: GpuMesh<'a>,
     table: GpuMesh<'a>,
     walls: GpuMesh<'a>,
+    window_width: i32,
+    window_height: i32,
 }
 
 impl App<'_> {
@@ -251,6 +253,8 @@ impl App<'_> {
             screen,
             table,
             walls,
+            window_width: WINDOW_WIDTH as i32,
+            window_height: WINDOW_HEIGHT as i32,
         })
     }
 
@@ -290,7 +294,8 @@ impl App<'_> {
         self.time += time_since_last;
         let z_offs = f32::sin(self.time / 8.0) * 0.05;
         let y_offs = f32::cos(self.time / 8.0) * 0.05;
-        self.view_matrix = Transform::scale(1.0 / WINDOW_ASPECT, 1.0, 1.0)
+        let aspect = self.window_width as f32 / self.window_height as f32;
+        self.view_matrix = Transform::scale(1.0 / aspect, 1.0, 1.0)
             * Transform::perspective(50.0f32.to_radians(), 0.1, 10.0)
             * Transform::look_at(
                 [0.6, 0.20 + y_offs, -0.05 + z_offs].into(),
@@ -382,7 +387,7 @@ impl App<'_> {
             self.gl
                 .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             self.gl
-                .viewport(0, 0, WINDOW_WIDTH as i32, WINDOW_HEIGHT as i32);
+                .viewport(0, 0, self.window_width, self.window_height);
 
             self.mesh_renderer.set_camera_transform(&self.view_matrix);
             self.mesh_renderer
@@ -395,6 +400,11 @@ impl App<'_> {
             self.gl.delete_texture(tex);
             self.gl.delete_texture(screen_tex);
         }
+    }
+
+    fn set_window_size(&mut self, width: i32, height: i32) {
+        self.window_width = width;
+        self.window_height = height;
     }
 }
 
@@ -486,6 +496,14 @@ fn main() -> Result<(), MainError> {
 
     let mut glfw = glfw::init(fail_on_errors!())?;
 
+    // Request specific OpenGL version and core profile
+    glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
+    glfw.window_hint(glfw::WindowHint::ContextVersionMinor(1));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
+    glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true)); // Required on macOS
+
     let (mut window, events) = glfw
         .create_window(
             WINDOW_WIDTH,
@@ -495,8 +513,15 @@ fn main() -> Result<(), MainError> {
         )
         .ok_or(MainError::CreateGlfwWindow)?;
 
+    // Set the aspect ratio to 16:9
+    window.set_aspect_ratio(16, 9);
+
     window.make_current();
     window.set_key_polling(true);
+    window.set_framebuffer_size_polling(true);
+
+    // Get the initial window size
+    let (width, height) = window.get_framebuffer_size();
 
     const PIXEL_SIZE: u32 = 256;
     let mut glyph_cache = GlyphCache::new(PIXEL_SIZE)?;
@@ -504,6 +529,9 @@ fn main() -> Result<(), MainError> {
 
     let mesh_renderer = MeshRenderer::new(&gl).map_err(MainError::CreateMeshRenderer)?;
     let mut app = App::new(&gl, &args, &mut glyph_cache, &mesh_renderer)?;
+
+    // Initialize the app's window size
+    app.set_window_size(width, height);
 
     while !window.should_close() {
         let now = Instant::now();
@@ -513,7 +541,14 @@ fn main() -> Result<(), MainError> {
         window.swap_buffers();
 
         glfw.poll_events();
-        for _ in glfw::flush_messages(&events) {}
+        for (_, event) in glfw::flush_messages(&events) {
+            match event {
+                glfw::WindowEvent::FramebufferSize(width, height) => {
+                    app.set_window_size(width, height);
+                }
+                _ => {}
+            }
+        }
     }
 
     Ok(())

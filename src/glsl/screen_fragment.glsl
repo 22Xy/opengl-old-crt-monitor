@@ -23,9 +23,14 @@ void main() {
     if (adjusted_coord.x > 1.0 || adjusted_coord.y > 1.0 || adjusted_coord.x < 0.0 || adjusted_coord.y < 0) {
         out_color = background;
     } else {
-        vec4 sampled = texture(in_tex, adjusted_coord);
-        sampled.r = 0;
-        sampled.b = 0;
-        out_color = sampled + background;
+        vec4 sampled_color = texture(in_tex, adjusted_coord);
+        float threshold = 0.1; // Adjust this tolerance as needed
+
+        // Check if the color is close to the key color (e.g., black)
+        if (sampled_color.r < threshold && sampled_color.g < threshold && sampled_color.b < threshold) {
+            out_color = background;
+        } else {
+            out_color = vec4(0.0, sampled_color.g, 0.0, 1.0);
+        }
     }
 }
