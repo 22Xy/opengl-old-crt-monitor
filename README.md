@@ -1,4 +1,4 @@
-# stream-start-screen
+# OpenGL Old CRT Monitor
 
 This is a personal fork of the `stream-start-screen` project.
 
